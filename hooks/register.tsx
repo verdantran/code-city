@@ -33,7 +33,6 @@ const neighbours = atom({ plugin: 'code-city', key: 'nearby' } as const, [] as N
 const sessionsHere = atom({ plugin: 'code-city', key: 'sessionsHere' } as const, 1)
 const self = atom({ plugin: 'code-city', key: 'self' } as const, '')
 const isShopOpen = atom({ plugin: 'code-city', key: 'isShopOpen' } as const, false)
-const HOTKEYS = 'abcdefghijklmnopqrtu'
 const LIVE = ['pending', 'running', 'waiting', 'idle']
 const STALE_MS = 15_000
 const MAX_REGION = 40
@@ -711,8 +710,8 @@ export const register: Register = on => {
         <Box flexDirection="row" gap={1} width={`${Math.floor(100 / columns)}%`}>
           <Button
             key={`buy-${item.id}`}
-            hotkey={HOTKEYS[CATALOG.indexOf(item)]}
-            label={formatTokens(item.price)}
+            hotkey={item.hotkey}
+            label={`${item.hotkey}: ${formatTokens(item.price)}`}
             dimColor={!canAfford}
             variant={canAfford ? 'primary' : 'secondary'}
             onPress={() => purchase($, item.id)}
@@ -809,7 +808,7 @@ export const register: Register = on => {
           )}
           {isShop && spotlight && (
             <Text dimColor wrap="truncate-end">
-              {spotlight.name}: {spotlight.blurb}. Each item's letter buys it while the pane has the keyboard.
+              {spotlight.name}: {spotlight.blurb}. Press an item's key to buy it while the pane has the keyboard.
             </Text>
           )}
         </Box>

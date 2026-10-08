@@ -1,7 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { newCity, tick } from '../hooks/city'
-import { balanceOf, buy, formatTokens, weighTokens } from '../hooks/shop'
+import { frame, newCity, tick } from '../hooks/city'
+import { balanceOf, buy, CATALOG, formatTokens, RESERVED_KEYS, weighTokens } from '../hooks/shop'
 
 const rich = (tokens: number) => ({ ...newCity(1), tokens })
 
@@ -53,7 +53,7 @@ test('the pane switches to the shop and back', async ($, on) => {
       props: { title: 'City', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 24 }, view: {} },
     })
     expect(await ui.find({ text: /0 tokens/ })).toBeDefined()
-    expect(await ui.find({ text: /150k more for street trees/ })).toBeDefined()
+    expect(await ui.find({ text: /25k more for flower beds/ })).toBeDefined()
     expect(await ui.find({ text: /s shop · v map/ })).toBeDefined()
     await ui.press({ key: 'shop' })
     expect(await ui.find({ text: /City shop/ })).toBeDefined()
@@ -97,4 +97,26 @@ test('the catalogue climbs to a billion, with no hotkey clash', async () => {
   expect(balanceOf(ring)).toBe(0)
   const elevator = buy(rich(600_000_000), 'elevator').city!
   expect(elevator.buildings.some(b => b.special === 'elevator')).toBe(true)
+})
+
+test('every item has its own hotkey, clear of the pane\'s buttons', async () => {
+  const keys = CATALOG.map(i => i.hotkey)
+  expect(new Set(keys).size).toBe(CATALOG.length)
+  expect(keys.every(k => /^[a-z0-9]$/.test(k) && !RESERVED_KEYS.includes(k))).toBe(true)
+})
+
+test('every item can be bought and changes the picture', async () => {
+  let c = { ...newCity(1), bricks: 2000, citizens: 60 }
+  for (let t = 0; t < 80; t++) c = tick(c, t * 2000)
+  // Noon and midnight over half an hour, so day-only, night-only and occasional visitors all get a look.
+  const moments = [Date.UTC(2026, 6, 10, 12), Date.UTC(2026, 6, 10, 0)].flatMap(at => Array.from({ length: 12 }, (_, k) => at + k * 151_000 + 12_000))
+  for (const item of CATALOG) {
+    if (item.kind === 'upgrade') continue
+    let bought = buy({ ...c, tokens: item.price }, item.id).city!
+    expect(bought.owned).toContain(item.id)
+    for (let t = 0; t < 30; t++) bought = tick({ ...bought, bricks: bought.bricks + 50 }, t)
+    const before = { ...bought, owned: [], buildings: bought.buildings.filter(b => b.special !== item.id) }
+    const changed = moments.some(now => JSON.stringify(frame(bought, 120, 30, now)) !== JSON.stringify(frame(before, 120, 30, now)))
+    expect({ item: item.id, changed }).toEqual({ item: item.id, changed: true })
+  }
 })

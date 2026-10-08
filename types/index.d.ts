@@ -21,6 +21,19 @@ export type ItemId =
   | 'moonbase'
   | 'elevator'
   | 'ring'
+  | 'kites'
+  | 'lighthouse'
+  | 'turbine'
+  | 'castle'
+  | 'pyramid'
+  | 'meteors'
+  | 'ufo'
+  | 'dyson'
+  | 'flowers'
+  | 'birds'
+  | 'benches'
+  | 'foodtruck'
+  | 'bunting'
 
 export type Building = {
   id: number

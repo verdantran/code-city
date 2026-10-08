@@ -45,6 +45,10 @@ const SPECIAL: Partial<Record<string, { face: number; roof: number; floors: numb
   biodome: { face: 0x8fd8e8, roof: 0xbfeef6, floors: 3 },
   supertall: { face: 0x5a6a80, roof: 0xd8dce4, floors: 22 },
   elevator: { face: 0x8a96a8, roof: 0xe8ecf0, floors: 2 },
+  lighthouse: { face: 0xf2f2f2, roof: 0xd94040, floors: 8 },
+  turbine: { face: 0xe8ecf0, roof: 0xf2f2f2, floors: 9 },
+  castle: { face: 0xa8a294, roof: 0x8a8478, floors: 4 },
+  pyramid: { face: 0x9fc8e8, roof: 0xbfe0f4, floors: 5 },
 }
 const SLAB = 2
 const TUCK = 3

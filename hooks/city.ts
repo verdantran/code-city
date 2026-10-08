@@ -296,7 +296,9 @@ export function paint(c: City, W: number, H: number, now: number, scene: Scene =
   drawRainbow(sky, w)
   const moonP = (phase - 0.5) * 2
   const moon = phase >= 0.5 ? { x: Math.round(moonP * (W + 6)) - 3, y: Math.round(ground - Math.sin(moonP * Math.PI) * (ground - 3)) } : undefined
-  drawHeavens({ W, set, fx: set, get, shade: (col: number) => col, isNight, now, ground }, c, light, moon)
+  const sunP = phase * 2
+  const sun = phase < 0.5 ? { x: Math.round(sunP * (W + 6)) - 3, y: Math.round(ground - Math.sin(sunP * Math.PI) * (ground - 3)) } : undefined
+  drawHeavens({ W, set, fx: set, get, shade: (col: number) => col, isNight, now, ground }, c, light, moon, sun)
   drawClouds(sky, w)
   drawBolt(sky, w)
 
