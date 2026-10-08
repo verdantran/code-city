@@ -90,5 +90,5 @@ test('missing usage fields count as zero, never NaN', async () => {
 
 test('paths that differ only in punctuation get separate cities', async () => {
   expect(cityFolderOf('/a-b/c')).not.toBe(cityFolderOf('/a/b-c'))
-  expect(cityFolderOf('/Users/me/projects/mini-crossword')).toMatch(/^Users-me-projects-mini-crossword--[0-9a-f]{6}$/)
+  expect(cityFolderOf('/Users/me/projects/example-app')).toMatch(/^Users-me-projects-example-app--[0-9a-f]{6}$/)
 })
