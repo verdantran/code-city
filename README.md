@@ -93,6 +93,14 @@ Each project folder has its own city, and they all know about each other.
 
 Only names, sizes and skyline shapes are shared between sessions, never what you're working on. See below for exactly what's stored.
 
+## If the colours look grey
+
+The city is drawn in 24-bit colour. If your terminal only reports 256 colours, the dark and muted shades (the night sky, buildings after dark) get rounded to greys, while bright colours like lit windows survive. This is common in WSL under Windows Terminal, which supports full colour but doesn't say so. Add this to your `~/.bashrc` (or your shell's equivalent) and restart Claude Code:
+
+```sh
+export COLORTERM=truecolor
+```
+
 ## What it stores, and where
 
 Nothing is ever written inside your projects. Everything lives under your home folder:
