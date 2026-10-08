@@ -1,11 +1,27 @@
 {
   "name": "code-city",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "An idle pixel-art city in a side pane that grows as you prompt, edit and run commands. Open it with /city.",
-  "author": { "name": "verdantran" },
+  "author": {
+    "name": "verdantran"
+  },
   "homepage": "https://github.com/verdantran/code-city",
   "repository": "https://github.com/verdantran/code-city",
   "license": "MIT",
-  "keywords": ["game", "idle", "pane", "pixel-art", "fun"],
-  "types": "./types/index.d.ts"
+  "keywords": [
+    "game",
+    "idle",
+    "pane",
+    "pixel-art",
+    "fun"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "autoOpen": {
+      "type": "boolean",
+      "title": "Open the city at the start of every session",
+      "description": "Show the city pane by itself whenever a session starts. When off, it opens only when you type /city.",
+      "default": false
+    }
+  }
 }

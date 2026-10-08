@@ -404,7 +404,10 @@ async function pruneStore($: EngineInterface) {
   for (const key of keys) if (key !== local.storeKey && !(await $.fs.exists(key.slice(5)).catch(() => true))) await $.store.delete(key).catch(() => undefined)
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  // Off unless the person turns it on: the pane opens only when asked for with /city.
+  const isAutoOpen = options.autoOpen === true
+
   let mounted: { columns: number; rows: number } | undefined
 
   on('session.start', async ($, e, next) => {
@@ -477,7 +480,7 @@ export const register: Register = on => {
       if (res.deny) mounted = undefined
     })
 
-    void $.ui.open({ id: PANE, title: 'City', columns: 64, rows: 20 })
+    if (isAutoOpen) void $.ui.open({ id: PANE, title: 'City', columns: 64, rows: 20 })
     return next(e)
   }).catch(($, e, next) => next(e))
 
