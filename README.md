@@ -14,7 +14,11 @@ In a Claude Code terminal session:
 /plugin install code-city --marketplace verdantran/code-city
 ```
 
-Answer `y` to add the marketplace, then pick a scope (user scope makes it available in every project). The pane opens by itself in wide terminals; anywhere else, type `/city`.
+Answer `y` to add the marketplace, then pick a scope (user scope makes it available in every project). Type `/city` whenever you want to see your city.
+
+### Opening it automatically
+
+By default the pane only opens when you type `/city`, so it never appears in a project unless you ask for it. To have it open at the start of every session instead, turn on **Open the city at the start of every session**. The install offers this setting, and you can change it later in `/config`. Even with it on, the pane only opens by itself in terminals wide enough to fit it beside the conversation.
 
 ## Commands and keys
 
@@ -108,10 +112,15 @@ Nothing is ever written inside your projects. Everything lives under your home f
 | Path | Contents |
 | --- | --- |
 | `~/.claude/code-city/cities/<project-path>--<hash>/` | Each project's city: buildings, counters and token totals, plus a small lock file and one earnings file per session (numbers only) |
-| `~/.claude/code-city/presence/<session-id>.json` | Each running session's project name, city size and the types of any running subagents, so sessions can see each other. Blanked when the session ends. |
+| `~/.claude/code-city/presence/<id>.json` | Each running session's project name, city size, whether it's working right now and the types of any running subagents, so sessions can see each other. `<id>` is a random ID the plugin makes up, not Claude Code's session ID. Blanked when the session ends. |
 | `~/.claude/plugins/store/code-city_*.json` | A private backup of each city, keyed by project path |
 
-No prompts, code, commands, file contents or subagent task descriptions are written to disk. Folder names do include each project's path. On a Mac shared with other accounts, `chmod 700 ~/.claude/code-city` keeps the shared files private to you.
+No prompts, code, commands, file contents, file names or subagent task descriptions are written to disk. What is written still says something about how you work, though:
+
+- **Which projects you work on.** Folder names are made from each project's full path, so they include your username and the project's location.
+- **How much and when.** Each city keeps totals of tokens used and of prompts, edits and commands, with timestamps for when it was founded and when each session last checked in.
+
+None of this leaves your computer, but anyone who can read your home folder can see it. On a computer shared with other accounts, `chmod 700 ~/.claude/code-city` keeps these files private to you.
 
 ## AI Generated Code
 
