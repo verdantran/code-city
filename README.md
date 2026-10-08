@@ -1,38 +1,97 @@
 # Code City
 
-An idle pixel-art city for [Claude Code](https://claude.com/claude-code). It lives in a side pane and grows while you work: every prompt brings new citizens, every edit and command earns bricks, and the tokens you use buy landmarks, all the way up to an orbital ring.
+An idle pixel-art city for [Claude Code](https://claude.com/claude-code). It lives in a side pane and grows while you work: every prompt brings new citizens, every edit earns bricks, every command powers a factory, and the tokens you use buy landmarks, from a bed of flowers all the way up to a Dyson swarm.
 
-Each project gets its own city. Run several sessions in one project and they share it; open the map to see every city you've built as an island in the same sea.
+![A day in Code City: the sun rises over a skyline with a supertall, a Ferris wheel and a rocket pad, then night falls and fireworks go off](docs/street.gif)
+
+Each project gets its own city. Sessions in the same project build it together, sessions in other projects show up as skylines on the horizon, and the map shows every city you've built as an island in the same sea.
 
 ## Install
 
 In a Claude Code terminal session:
 
 ```
-/plugin install code-city --marketplace verdantran/claude-city
+/plugin install code-city --marketplace verdantran/code-city
 ```
 
 Answer `y` to add the marketplace, then pick a scope (user scope makes it available in every project). The pane opens by itself in wide terminals; anywhere else, type `/city`.
 
-## Using it
+## Commands and keys
 
 | Command or key | What it does |
 | --- | --- |
 | `/city` | Open the pane and show the city's size and balance |
 | `/city shop` | Open the shop under the city |
 | `/city buy <item>` | Buy by exact name or a unique prefix of 3+ letters, e.g. `/city buy ferris` |
-| `/city map` | Switch between the street and the isometric map of all your cities |
-| `s` / `v` / `z` | Shop, map, and zoom: these work once the pane has the keyboard (click it, or `ctrl+x tab`) |
+| `/city map` | Switch between the street and the map of all your cities |
+| `s` / `v` / `z` | Shop, map and zoom |
+| An item's key | Buy that item while the shop is open (each button shows its key, e.g. `a: 150k`) |
 
-### How the city grows
+The keys work once the pane has the keyboard: click it, or press `ctrl+x tab`. You can also click any button.
 
-- **Prompts** bring citizens. **Edits and new files** earn bricks. **Shell commands** earn power, which builds factories.
-- **Passing tests** plant a park and bring a rainbow. **A failed command** brings a brief shower. **A commit** sets off fireworks.
-- **Subagents** fly over the city as drones while they work, and pay bricks when they land.
-- The city keeps building on its own between your actions: cranes, new lots, taller towers, and a subway once it reaches Town size.
-- **Tokens** used in the project become a balance to spend in the shop on street trees, a Ferris wheel, a stadium, a space elevator and more. Cache reads count a tenth, matching how they're billed.
+## How your city grows
 
-Weather, day and night, pedestrians and seasons come along for free.
+Your work feeds the city:
+
+| You... | The city gets |
+| --- | --- |
+| Send a prompt | 2 new citizens and a few bricks |
+| Edit a file | Bricks, more for bigger edits |
+| Create a file | Bricks and a new citizen |
+| Run a shell command | Power, which builds factories |
+| Run tests that pass | A rainbow, and a new park |
+| Run a command that fails | A brief shower |
+| Make a commit | Fireworks |
+| Launch a subagent | A drone that flies over the city while it works, and a new citizen |
+| Use tokens | A balance to spend in the shop (cache reads count a tenth, matching how they're billed) |
+
+Between your actions the city keeps building on its own: cranes raise new floors, empty lots fill with houses, shops and towers, and citizens bring in a trickle of bricks. As it grows it moves up through six sizes:
+
+| Size | Citizens |
+| --- | --- |
+| Campsite | 0 |
+| Hamlet | 10 |
+| Village | 30 |
+| Town | 80 |
+| City | 200 |
+| Metropolis | 500 |
+
+At Town size a subway starts tunnelling under the street, with stations and trains; at 300 citizens a second line follows.
+
+## Life on the street
+
+The city has a life of its own:
+
+![The city at night: lit windows, stars, a flying saucer and the first fireworks](docs/night.png)
+
+
+- **Day and night.** A day lasts four minutes. The sun and moon cross the sky, stars come out, and windows light up after dark.
+- **Seasons.** These follow the real calendar: blossom drifts past in spring, leaves fall in autumn, and in winter snow settles on the roofs and the street trees go bare.
+- **Weather.** Clouds, rain, storms, fog, snow, and on clear winter nights the odd aurora.
+- **People.** Pedestrians walk the pavements and put up umbrellas in the rain, with fewer out at night or in bad weather. Commuters come and go from the subway.
+
+## The shop
+
+The tokens you use pile up as a balance, and the shop turns them into things for your city. There are 33 items, from 25k to 2B tokens:
+
+- **Street life:** flower beds, benches, a food truck, bunting, trees and lamps.
+- **Landmarks:** a fountain plaza, a lighthouse, a Ferris wheel, a wind turbine, a stadium, a castle, a rocket pad that launches every few minutes, a glass pyramid, a biodome, a supertall and a space elevator.
+- **In the sky:** songbirds, kites, a hot-air balloon, an airport, a monorail, an airship, a meteor shower, a flying saucer, a space station, a moon base, an orbital ring and a Dyson swarm.
+- **Upgrades:** the **Brickworks** (+50% bricks from edits), **City hall** (doubles idle income) and the **Express subway** (tunnels dig twice as fast, and trains run faster).
+
+The pane's header always shows your balance and either how many items you can afford or how far you are from the next one.
+
+## Other cities
+
+Each project folder has its own city, and they all know about each other.
+
+- **Several sessions in one project** share a single city. Everything any of them earns goes into it, and one session at a time does the building, handing over automatically when it closes. The line above the picture shows how many sessions are here.
+- **Sessions in other projects** appear on the street view as skylines on the distant hills, up to four at a time. A neighbour's windows flicker while its session is working, and their names are listed under the picture, with whether each is working or idle and how many drones it has out.
+- **The map** (`v`, or `/city map`) shows up to 40 of your most recently active cities as islands, biggest first. Each island flies a flag, and yours is marked. A flag blinks while a session there is working, and its drones fly back and forth overhead. Press `z` to zoom between near, mid and far.
+
+![The map: five project cities as islands in the sea, from a big skyline down to a few houses](docs/map.png)
+
+Only names, sizes and skyline shapes are shared between sessions, never what you're working on. See below for exactly what's stored.
 
 ## What it stores, and where
 
@@ -46,14 +105,23 @@ Nothing is ever written inside your projects. Everything lives under your home f
 
 No prompts, code, commands, file contents or subagent task descriptions are written to disk. Folder names do include each project's path. On a Mac shared with other accounts, `chmod 700 ~/.claude/code-city` keeps the shared files private to you.
 
-## Safety
+## AI Generated Code
 
-The plugin was reviewed for security over several passes. In short:
+Code City was written, using Claude Code. AI-written code can contain mistakes that look plausible, so please treat this plugin like any other code from the internet: read it before you run it.
 
-- It never alters your prompts, Claude's tool calls or results, or the model's replies, and its bookkeeping runs after each hook returns, so it can't slow your work.
-- It makes no shell, network or model calls.
-- Everything it reads from disk is validated and size-limited, text from outside is stripped of control characters before it reaches your terminal, and it writes only inside `~/.claude/code-city`, refusing links and files it didn't create.
-- The game state is shared through plain files, so anything already running as you could fake it. That can only affect the game.
+What has been done to check it:
+
+- An automated test suite (`claude plugin test .`) covers the game logic, the shop, syncing between sessions, and how the plugin handles damaged or unexpected files.
+- `claude plugin validate .` passes. It lists every event the plugin hooks into and every capability it uses.
+- The code was security reviewed several times with claude code
+
+None of that replaces your own judgement. A plugin runs inside Claude Code with your permissions, so before installing it, check that it does what it says. As a starting point, the plugin is designed to:
+
+- only watch your session to keep score, never changing your prompts, Claude's tool calls or results, or the model's replies;
+- make no shell, network or model calls;
+- write only inside `~/.claude/code-city` and its own backup in Claude Code's plugin store (see the table above).
+
+The quickest way to confirm this is to run `claude plugin validate .` on a clone and read its report, then skim `hooks/register.tsx`, where every hook is registered. If anything looks wrong, please open an issue.
 
 ## Uninstall
 
@@ -70,8 +138,8 @@ To remove its data as well, delete `~/.claude/code-city` and `~/.claude/plugins/
 The plugin is a hooks module (`hooks/register.tsx`) with plain TypeScript helpers alongside it. To run a working copy:
 
 ```sh
-git clone https://github.com/verdantran/claude-city.git
-claude --plugin-dir ./claude-city
+git clone https://github.com/verdantran/code-city.git
+claude --plugin-dir ./code-city
 ```
 
 Claude Code writes the API type declarations into `.claude-plugin/types/` when it loads the plugin, after which `tsc -p .` type-checks it.
