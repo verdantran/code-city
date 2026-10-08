@@ -9,6 +9,7 @@ const LANDMARK_ITEMS = new Set<string>(CATALOG.filter(i => i.kind === 'landmark'
 const STATUSES = ['pending', 'running', 'waiting', 'idle']
 export { MAX_BUILDINGS }
 export const MAX_SESSIONS = 500
+const MAX_PURCHASES = 1_000
 const BIG = 1e15
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -65,8 +66,11 @@ export function num(value: unknown, lo: number, hi: number, fallback = lo): numb
 
 const whole = (value: unknown, lo: number, hi: number, fallback = lo) => Math.round(num(value, lo, hi, fallback))
 
-const itemIds = (value: unknown, allowed: Set<string>): ItemId[] =>
-  Array.isArray(value) ? [...new Set(value.filter((v): v is ItemId => typeof v === 'string' && allowed.has(v)))] : []
+const itemIds = (value: unknown, allowed: Set<string>): ItemId[] => [...new Set(itemList(value, allowed))]
+
+/** Item ids in order, repeats kept: a ledger's purchases are counted by position, so a retry must survive. */
+const itemList = (value: unknown, allowed: Set<string>): ItemId[] =>
+  Array.isArray(value) ? value.slice(0, MAX_PURCHASES).filter((v): v is ItemId => typeof v === 'string' && allowed.has(v)) : []
 
 function building(raw: unknown): Building | undefined {
   if (!isRecord(raw)) return undefined
@@ -99,7 +103,7 @@ export function sanitizeLedger(raw: unknown): Ledger | undefined {
     fireworksUntil: num(raw.fireworksUntil, 0, BIG),
     rainbowUntil: num(raw.rainbowUntil, 0, BIG),
     showerUntil: num(raw.showerUntil, 0, BIG),
-    purchases: itemIds(raw.purchases, ITEMS),
+    purchases: itemList(raw.purchases, ITEMS),
   }
 }
 

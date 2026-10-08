@@ -4,6 +4,7 @@ import type { City } from '../types'
 
 import { newCity, tick } from '../hooks/city'
 import { applyLedger, contest, emptyLedger, LEASE_MS, pruneApplied } from '../hooks/sync'
+import { sanitizeLedger } from '../hooks/safe'
 
 test('folding a ledger twice counts it once', async () => {
   const c = newCity(1)
@@ -63,4 +64,16 @@ test('one mayor at a time, confirmed before acting, with handover when the lease
 test('old sessions are forgotten after a week', async () => {
   const c = applyLedger(applyLedger(newCity(1), 'old', emptyLedger(), 0), 'new', emptyLedger(), 8 * 86_400_000)
   expect(Object.keys(pruneApplied(c, 8 * 86_400_000).applied ?? {})).toEqual(['new'])
+})
+
+test('buying again after a purchase the city could not afford still goes through', async () => {
+  const poor = { ...newCity(1), tokens: 100_000 }
+  // The session thought it could afford trees, but the city it was applied to could not.
+  const first = { ...emptyLedger(), purchases: ['trees' as const] }
+  const failed = applyLedger(poor, 's1', first, 1)
+  expect(failed.owned ?? []).not.toContain('trees')
+  // Tokens came in and the person pressed the same item again; the ledger crosses the disk on its way to the mayor.
+  const again = sanitizeLedger({ ...first, tokens: 200_000, purchases: ['trees', 'trees'] })!
+  const bought = applyLedger(failed, 's1', again, 2)
+  expect(bought.owned).toContain('trees')
 })
