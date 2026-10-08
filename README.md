@@ -124,13 +124,13 @@ None of this leaves your computer, but anyone who can read your home folder can 
 
 ## AI Generated Code
 
-Code City was written, using Claude Code. AI-written code can contain mistakes that look plausible, so please treat this plugin like any other code from the internet: read it before you run it.
+Code City was written using Claude Code. AI-written code can contain mistakes that look plausible, so please treat this plugin like any other code from the internet: read it before you run it.
 
 What has been done to check it:
 
 - An automated test suite (`claude plugin test .`) covers the game logic, the shop, syncing between sessions, and how the plugin handles damaged or unexpected files.
 - `claude plugin validate .` passes. It lists every event the plugin hooks into and every capability it uses.
-- The code was security reviewed several times with claude code
+- The code was security reviewed several times with Claude Code.
 
 None of that replaces your own judgement. A plugin runs inside Claude Code with your permissions, so before installing it, check that it does what it says. As a starting point, the plugin is designed to:
 
