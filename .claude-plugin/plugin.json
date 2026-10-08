@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "An idle pixel-art city in a side pane that grows as you prompt, edit and run commands. Open it with /city.",
   "author": { "name": "verdantran" },
-  "homepage": "https://github.com/verdantran/claude-city",
-  "repository": "https://github.com/verdantran/claude-city",
+  "homepage": "https://github.com/verdantran/code-city",
+  "repository": "https://github.com/verdantran/code-city",
   "license": "MIT",
   "keywords": ["game", "idle", "pane", "pixel-art", "fun"],
   "types": "./types/index.d.ts"

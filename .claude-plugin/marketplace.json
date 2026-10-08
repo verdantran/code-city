@@ -1,5 +1,5 @@
 {
-  "name": "claude-city",
+  "name": "code-city",
   "owner": { "name": "verdantran" },
   "description": "Code City: an idle city that grows as you work with Claude Code.",
   "plugins": [
