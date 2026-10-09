@@ -47,7 +47,7 @@ export const CATALOG: Item[] = [
   { id: 'moonbase', name: 'Moon base', price: 300_000_000, hotkey: 'r', kind: 'sky', blurb: 'Lights on the moon, and a shuttle to reach it' },
   { id: 'elevator', name: 'Space elevator', price: 500_000_000, hotkey: 't', kind: 'landmark', width: 5, blurb: 'A tether into the sky with a climber riding it' },
   { id: 'ring', name: 'Orbital ring', price: 1_000_000_000, hotkey: 'u', kind: 'sky', blurb: 'A luminous ring arcs across the whole sky' },
-  { id: 'dyson', name: 'Dyson swarm', price: 2_000_000_000, hotkey: '5', kind: 'sky', blurb: 'Mirrors circle the sun by day and glint among the stars by night' },
+  { id: 'dyson', name: 'Dyson swarm', price: 2_000_000_000, hotkey: '5', kind: 'sky', blurb: 'Mirrors circle the sun and beam down power to keep the factories running' },
 ]
 
 /** The most buildings a city keeps; the sanitizer drops any past it, so landmarks stop here. */

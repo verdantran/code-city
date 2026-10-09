@@ -43,14 +43,14 @@ Your work feeds the city:
 | Send a prompt | 2 new citizens and a few bricks |
 | Edit a file | Bricks, more for bigger edits |
 | Create a file | Bricks and a new citizen |
-| Run a shell command | Power, which builds factories |
+| Run a shell command | Power, which builds factories and keeps them making bricks |
 | Run tests that pass | A rainbow, and a new park |
 | Run a command that fails | A brief shower |
 | Make a commit | Fireworks |
 | Launch a subagent | A drone that flies over the city while it works, and a new citizen |
 | Use tokens | A balance to spend in the shop (cache reads count a tenth, matching how they're billed) |
 
-Between your actions the city keeps building on its own: cranes raise new floors, empty lots fill with houses, shops and towers, and citizens bring in a trickle of bricks. As it grows it moves up through six sizes:
+Between your actions the city keeps building on its own: cranes raise new floors, empty lots fill with houses, shops and towers, citizens bring in a trickle of bricks, and each factory turns a little power into bricks while the power lasts. As it grows it moves up through six sizes:
 
 | Size | Citizens |
 | --- | --- |
@@ -81,7 +81,7 @@ The tokens you use pile up as a balance, and the shop turns them into things for
 
 - **Street life:** flower beds, benches, a food truck, bunting, trees and lamps.
 - **Landmarks:** a fountain plaza, a lighthouse, a Ferris wheel, a wind turbine, a stadium, a castle, a rocket pad that launches every few minutes, a glass pyramid, a biodome, a supertall and a space elevator.
-- **In the sky:** songbirds, kites, a hot-air balloon, an airport, a monorail, an airship, a meteor shower, a flying saucer, a space station, a moon base, an orbital ring and a Dyson swarm.
+- **In the sky:** songbirds, kites, a hot-air balloon, an airport, a monorail, an airship, a meteor shower, a flying saucer, a space station, a moon base, an orbital ring and a Dyson swarm, which also beams down a steady supply of power for the factories.
 - **Upgrades:** the **Brickworks** (+50% bricks from edits), **City hall** (doubles idle income) and the **Express subway** (tunnels dig twice as fast, and trains run faster).
 
 The pane's header always shows your balance and either how many items you can afford or how far you are from the next one.

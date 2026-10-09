@@ -42,6 +42,19 @@ test('city hall doubles idle income and express digs faster', async () => {
   expect(tick({ ...digging, owned: ['express' as const] }, 0).tunnel).toBe(2 * (tick(digging, 0).tunnel ?? 0))
 })
 
+test('factories turn power into bricks until it runs out, and the swarm keeps them going', async () => {
+  const factory = { id: 1, x: 0, w: 8, kind: 'factory' as const, floors: 2, target: 2, hue: 0 }
+  const base = { ...newCity(1), citizens: 0, bricks: 0, buildings: [factory, { ...factory, id: 2, x: 9 }] }
+  const powered = tick({ ...base, power: 5 }, 0)
+  expect(Math.round(powered.bricks * 10)).toBe(6)
+  expect(Math.round(powered.power * 10)).toBe(48)
+  expect(Math.round(tick({ ...base, power: 0.1 }, 0).bricks * 10)).toBe(3)
+  expect(tick({ ...base, power: 0 }, 0).bricks).toBe(0)
+  const swarm = tick({ ...base, power: 0, owned: ['dyson' as const] }, 0)
+  expect(Math.round(swarm.bricks * 10)).toBe(6)
+  expect(Math.round(swarm.power * 10)).toBe(8)
+})
+
 test('the pane switches to the shop and back', async ($, on) => {
   mock.clock(on, { now: Date.UTC(2026, 6, 10) })
   for (const surface of ['terminal', 'desktop'] as const) {

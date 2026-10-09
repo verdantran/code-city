@@ -25,6 +25,10 @@ export const MAX_FLOORS = 14
 const FLOOR_COST = 5
 const LOT_COST = 12
 const DIG_COST = 4
+// Per two-second tick.
+const FACTORY_BURN = 0.1
+const FACTORY_BRICKS = 0.3
+const SWARM_POWER = 1
 const WIDTHS: Record<Kind, [number, number]> = {
   house: [4, 6],
   shop: [5, 7],
@@ -145,10 +149,13 @@ function dig(c: City): City {
   return c
 }
 
-/** One idle tick: passive income, tunnelling, then spend bricks on the next floor or lot. */
+/** One idle tick: passive income, factories turning power into bricks, tunnelling, then the next floor or lot. */
 export function tick(c: City, now: number): City {
-  const income = Math.min(3, c.citizens * 0.015) * (owns(c, 'cityhall') ? 2 : 1)
-  const next: City = dig({ ...c, bricks: c.bricks + income })
+  const power = c.power + (owns(c, 'dyson') ? SWARM_POWER : 0)
+  const factories = c.buildings.filter(b => b.kind === 'factory' && b.floors > 0).length
+  const running = Math.min(factories, power / FACTORY_BURN)
+  const income = (Math.min(3, c.citizens * 0.015) + running * FACTORY_BRICKS) * (owns(c, 'cityhall') ? 2 : 1)
+  const next: City = dig({ ...c, power: Math.max(0, power - running * FACTORY_BURN), bricks: c.bricks + income })
   const site = next.buildings.find(b => b.floors < b.target)
 
   if (site) {
