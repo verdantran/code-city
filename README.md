@@ -30,6 +30,7 @@ By default the pane only opens when you type `/city`, so it never appears in a p
 | `/city map` | Switch between the street and the map of all your cities |
 | `s` / `v` / `z` | Shop, map and zoom |
 | An item's key | Buy that item while the shop is open (each button shows its key, e.g. `a: 150k`) |
+| `a` / `d` | Scroll the street left or right while the shop is shut; auto-scroll resumes 3 seconds after the last press |
 
 The keys work once the pane has the keyboard: click it, or press `ctrl+x tab`. You can also click any button.
 

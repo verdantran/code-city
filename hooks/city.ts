@@ -1,4 +1,4 @@
-import type { Building, City, Kind, Scene } from '../types'
+import type { Building, City, Kind, Pan, Scene } from '../types'
 import { drawBuilding } from './buildings'
 import { hash, hashStr, mix, PAVEMENT, STREET } from './pixels'
 import {
@@ -234,6 +234,26 @@ export function milestones(before: City, after: City): string[] {
 const DAY_MS = 240_000
 const NO_SCENE: Scene = { agents: [], neighbours: [] }
 
+const PAN_MS = 220
+const spanOf = (c: City, W: number) => Math.max(rightEdge(c), ...lengthsOf(c)) - W
+const phaseOf = (span: number, now: number, pan: Pan) => (pan.at + Math.max(0, now - pan.since) / PAN_MS) % (span * 2)
+const across = (span: number, phase: number) => (phase < span ? phase : span * 2 - phase)
+
+/** Pixels the street has panned left: a back-and-forth sweep from phase `pan.at`, held there until `pan.since`. */
+export function scrolled(c: City, W: number, now: number, pan: Pan = { at: 0, since: 0 }) {
+  const span = spanOf(c, W)
+  return span > 0 ? Math.round(across(span, phaseOf(span, now, pan))) : 0
+}
+
+/** Moves the street `by` pixels by hand and holds it there for `holdMs`, keeping the sweep's direction for when it resumes. */
+export function nudge(c: City, W: number, now: number, pan: Pan, by: number, holdMs: number): Pan {
+  const span = spanOf(c, W)
+  if (span <= 0) return pan
+  const phase = phaseOf(span, now, pan)
+  const x = Math.max(0, Math.min(span, Math.round(across(span, phase)) + by))
+  return { at: phase < span ? x : span * 2 - x, since: now + holdMs }
+}
+
 const AGENT_COLORS = [0xff6b6b, 0x4ecdc4, 0xffd93d, 0xc77dff, 0x6bcb77, 0xff9f43, 0x54a0ff]
 export const agentColor = (type: string) => AGENT_COLORS[Math.floor(hashStr(type) * AGENT_COLORS.length)] ?? 0xffffff
 export const hex = (col: number) => `#${col.toString(16).padStart(6, '0')}`
@@ -342,13 +362,7 @@ export function paint(c: City, W: number, H: number, now: number, scene: Scene =
   })
 
   const used = Math.max(rightEdge(c), ...lengthsOf(c))
-  let off: number
-  if (used <= W) off = Math.floor((W - used) / 2)
-  else {
-    const span = used - W
-    const t = (now / 220) % (span * 2)
-    off = -Math.round(t < span ? t : span * 2 - t)
-  }
+  const off = used <= W ? Math.floor((W - used) / 2) : -scrolled(c, W, now, scene.pan)
 
   const shade = (col: number) => mix(col, 0x0a0d18, (isNight ? 0.55 : (1 - light) * 0.4) + w.overcast * 0.2)
   const cv = { W, set: solid, fx: set, get, shade, isNight: isDark, now, ground }

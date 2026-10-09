@@ -1,8 +1,8 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { AgentView, City, District, ItemId, Ledger, LogLine, Neighbour, View } from '../types'
-import { agentColor, frame, happenings, hex, milestones, newCity, pack, skyAt, stationsOf, tick, tierOf } from './city'
+import type { AgentView, City, District, ItemId, Ledger, LogLine, Neighbour, Pan, View } from '../types'
+import { agentColor, frame, happenings, hex, milestones, newCity, nudge, pack, skyAt, stationsOf, tick, tierOf } from './city'
 import { paintRegion, ZOOMS } from './iso'
 import { clean, fnv, isOurFile, MAX_SESSIONS, num, sanitizeCity, sanitizeLedger, sanitizeNeighbour, stamp } from './safe'
 import type { FileKind } from './safe'
@@ -43,6 +43,8 @@ const TOAST_GAP_MS = 10_000
 const LOG_KEEP = 40
 const MAX_READ = 1_000_000
 const SESSION_FILE = /^[A-Za-z0-9-]{1,64}\.json$/
+const PAN_STEP = 4
+const PAN_HOLD_MS = 3_000
 
 const lines = (s: string | undefined) => (s ? s.split('\n').length : 0)
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
@@ -77,6 +79,7 @@ const local = {
   inboxQueue: Promise.resolve() as Promise<unknown>,
   presenceWrite: Promise.resolve() as Promise<unknown>,
   timers: [] as { cancel: () => void }[],
+  pan: { at: 0, since: 0 } as Pan,
 }
 
 const paths = () => ({
@@ -329,6 +332,10 @@ async function runCity($: EngineInterface, now: number) {
   await $.store.set(local.storeKey, shared).catch(() => undefined)
 }
 
+async function panBy($: EngineInterface, by: number, columns: number) {
+  local.pan = nudge(await seen($), columns, await $.clock.now(), local.pan, by, PAN_HOLD_MS)
+}
+
 async function pullCity($: EngineInterface) {
   const shared = sanitizeCity(await readSafe($, paths().city))
   if (!shared) return
@@ -475,7 +482,7 @@ export const register: Register = (on, options) => {
       const cells =
         (await read($, view)) === 'map'
           ? pack(paintRegion(await districtsNow($), mounted.columns, mounted.rows * 2, now, await read($, zoom)), mounted.columns, mounted.rows)
-          : frame(await seen($), mounted.columns, mounted.rows, now, { agents: await read($, agents), neighbours: await read($, neighbours) })
+          : frame(await seen($), mounted.columns, mounted.rows, now, { agents: await read($, agents), neighbours: await read($, neighbours), pan: local.pan })
       const res = await $.ui.blit({ requestId: PANE, key: 'skyline', cells, ...mounted })
       if (res.deny) mounted = undefined
     })
@@ -635,7 +642,7 @@ export const register: Register = (on, options) => {
     const isMap = (await read($, view)) === 'map'
     const districts = isMap ? await districtsNow($) : []
     const zoomLevel = await read($, zoom)
-    const scene = { agents: await read($, agents), neighbours: await read($, neighbours) }
+    const scene = { agents: await read($, agents), neighbours: await read($, neighbours), pan: local.pan }
     const now = await $.clock.now()
     const balance = balanceOf(c)
     const forSale = CATALOG.filter(i => !owns(c, i.id))
@@ -656,7 +663,8 @@ export const register: Register = (on, options) => {
     const building = c.buildings.some(b => b.floors < b.target)
     const sky = weatherLabel(weatherAt(now, c), skyAt(now).isNight)
     const stats = `${tierOf(c)} · ${Math.floor(c.citizens)} citizens · ${Math.floor(c.bricks)} bricks · ${Math.floor(c.power)} power · ${c.buildings.length} lots · ${sky}${stationsOf(c) ? ` · ${stationsOf(c)} stations` : ''}${here > 1 ? ` · ${here} sessions here` : ''}`
-    const keys = isMap ? 's shop · v street · z zoom' : 's shop · v map'
+    const canPan = Raster !== undefined && !isMap && !isShop
+    const keys = isMap ? 's shop · v street · z zoom' : canPan ? 's shop · v map · a/d scroll' : 's shop · v map'
     const keyHint = e.props.isFocused ? keys : `click or ctrl+x tab, then ${keys}`
 
     const progress =
@@ -677,6 +685,8 @@ export const register: Register = (on, options) => {
     const toggle = (
       <Box flexDirection="row" gap={1}>
         <Text dimColor>{keyHint}</Text>
+        {canPan && <Button key="pan-left" hotkey="a" plain label="◀" onPress={() => panBy($, -PAN_STEP, width)} />}
+        {canPan && <Button key="pan-right" hotkey="d" plain label="▶" onPress={() => panBy($, PAN_STEP, width)} />}
         <Button
           key="shop"
           hotkey="s"

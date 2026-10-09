@@ -116,7 +116,9 @@ export type LogLine = { at: number; text: string }
 
 export type View = 'street' | 'map'
 
-export type Scene = { agents: AgentView[]; neighbours: Neighbour[] }
+/** Where the street's sweep stands: its phase in pixels, and when it moves again. */
+export type Pan = { at: number; since: number }
+export type Scene = { agents: AgentView[]; neighbours: Neighbour[]; pan?: Pan }
 
 declare module 'claude-code' {
   interface PluginState {
