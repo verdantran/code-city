@@ -522,7 +522,6 @@ export function drawHeavens(
   c: City,
   light: number,
   moon: { x: number; y: number } | undefined,
-  sun?: { x: number; y: number },
 ) {
   const { W, fx, get, now, ground } = cv
   const secs = now / 1000
@@ -544,24 +543,6 @@ export function drawHeavens(
         const x = hx - Math.round((j * 14) / 18)
         const y = hy - Math.round((j * 6) / 18)
         if (x >= 0 && x < W && y >= 0 && y < ground) fx(x, y, mix(get(x, y), 0xffffff, (1 - j / len) * (1 - light * 2) * (1 - t * 0.5)))
-      }
-    }
-  }
-
-  if (owns(c, 'dyson')) {
-    if (sun && light >= 0.3) {
-      for (let k = 0; k < 12; k++) {
-        const ang = secs / 8 + (k / 12) * Math.PI * 2
-        const r = 4 + (k % 2)
-        const x = Math.round(sun.x + Math.cos(ang) * r)
-        const y = Math.round(sun.y + Math.sin(ang) * r * 0.6)
-        if (x >= 0 && x < W && y >= 0 && y < ground) fx(x, y, mix(get(x, y), (Math.floor(now / 300) + k) % 4 ? 0xffe8a8 : 0xffffff, 0.8))
-      }
-    } else if (light < 0.5) {
-      for (let k = 0; k < 18; k++) {
-        const x = Math.round(hash(k, 91) * W + secs * 0.4) % Math.max(1, W)
-        const y = Math.round(hash(k, 92) * ground * 0.3)
-        if (Math.floor(now / 400 + k * 3) % 7 === 0) fx(x, y, mix(get(x, y), 0xffe8a8, 0.9))
       }
     }
   }
@@ -601,5 +582,42 @@ export function drawHeavens(
       fx(sx, sy, 0xffffff)
       fx(sx, sy + 1, 0xff8a30)
     }
+  }
+}
+
+/** The Dyson swarm, drawn over the clouds: a ring of mirrors round the sun by day, a glinting band by night. */
+export function drawSwarm(cv: Canvas, c: City, sun: { x: number; y: number } | undefined, overcast: number) {
+  if (!owns(c, 'dyson')) return
+  const { W, fx, get, now, ground } = cv
+  const secs = now / 1000
+  const clear = 1 - overcast * 0.6
+  const dot = (x: number, y: number, col: number, a: number) => {
+    if (x >= 0 && x < W && y >= 0 && y < ground) fx(x, y, mix(get(x, y), col, a * clear))
+  }
+
+  if (sun) {
+    const orbit = (ang: number, r: number) => ({ x: Math.round(sun.x + Math.cos(ang) * r), y: Math.round(sun.y + Math.sin(ang) * r * 0.45 + Math.cos(ang) * 1.5) })
+    for (let k = 0; k < 48; k++) {
+      const p = orbit((k / 48) * Math.PI * 2, 8)
+      dot(p.x, p.y, 0xc8e8ff, 0.18)
+    }
+    for (let k = 0; k < 16; k++) {
+      const ang = secs / 6 + (k / 16) * Math.PI * 2
+      const p = orbit(ang, 8 + (k % 3) - 1)
+      const isNear = Math.sin(ang) > 0
+      const isGlint = (Math.floor(now / 250) + k * 5) % 16 === 0
+      dot(p.x, p.y, isGlint ? 0xffffff : 0xa8f0ff, isNear ? 0.95 : 0.45)
+    }
+    return
+  }
+
+  // Night: the mirrors still catch the sun below the horizon, a sweep of light running along their band.
+  const sweep = (secs / 9) % 1.4 - 0.2
+  for (let k = 0; k < 36; k++) {
+    const t = ((k + hash(k, 93)) / 36 + secs / 400) % 1
+    const x = Math.round(t * W)
+    const y = Math.round(ground * (0.1 + t * 0.2) + (hash(k, 94) - 0.5) * 3)
+    const lit = Math.max(0, 1 - Math.abs(t - sweep) * 12)
+    dot(x, y, lit > 0.3 ? 0xffffff : 0x9fdcff, 0.35 + lit * 0.6)
   }
 }

@@ -15,7 +15,7 @@ import {
 } from './weather'
 import { drawPeople } from './people'
 import { itemOf, owns } from './shop'
-import { drawHeavens, drawSkyline, drawStreetscape } from './specials'
+import { drawHeavens, drawSkyline, drawStreetscape, drawSwarm } from './specials'
 import { depthOf, drawUnderground, entrancesOf, lengthsOf, SECOND_LINE_AT, stationsOf, SUBWAY_AT, TRAINS_AT } from './underground'
 
 export { hash, hashStr, mix, stationsOf }
@@ -318,8 +318,10 @@ export function paint(c: City, W: number, H: number, now: number, scene: Scene =
   const moon = phase >= 0.5 ? { x: Math.round(moonP * (W + 6)) - 3, y: Math.round(ground - Math.sin(moonP * Math.PI) * (ground - 3)) } : undefined
   const sunP = phase * 2
   const sun = phase < 0.5 ? { x: Math.round(sunP * (W + 6)) - 3, y: Math.round(ground - Math.sin(sunP * Math.PI) * (ground - 3)) } : undefined
-  drawHeavens({ W, set, fx: set, get, shade: (col: number) => col, isNight, now, ground }, c, light, moon, sun)
+  const heavens = { W, set, fx: set, get, shade: (col: number) => col, isNight, now, ground }
+  drawHeavens(heavens, c, light, moon)
   drawClouds(sky, w)
+  drawSwarm(heavens, c, sun, w.overcast)
   drawBolt(sky, w)
 
   const hill = mix(0x141c30, 0x6f9c7a, light)
