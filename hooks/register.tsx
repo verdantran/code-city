@@ -33,6 +33,7 @@ const neighbours = atom({ plugin: 'code-city', key: 'nearby' } as const, [] as N
 const sessionsHere = atom({ plugin: 'code-city', key: 'sessionsHere' } as const, 1)
 const self = atom({ plugin: 'code-city', key: 'self' } as const, '')
 const isShopOpen = atom({ plugin: 'code-city', key: 'isShopOpen' } as const, false)
+const isAwake = atom({ plugin: 'code-city', key: 'isAwake' } as const, false)
 const LIVE = ['pending', 'running', 'waiting', 'idle']
 const STALE_MS = 15_000
 const MAX_REGION = 40
@@ -71,6 +72,7 @@ const local = {
   isOffline: false,
   corrupt: 0,
   hasSynced: false,
+  isAwake: false,
   isEnded: false,
   isClosing: false,
   reported: new Set<string>(),
@@ -80,6 +82,7 @@ const local = {
   presenceWrite: Promise.resolve() as Promise<unknown>,
   timers: [] as { cancel: () => void }[],
   pan: { at: 0, since: 0 } as Pan,
+  mounted: undefined as { columns: number; rows: number } | undefined,
 }
 
 const paths = () => ({
@@ -209,6 +212,7 @@ async function earn($: EngineInterface, fn: (l: Ledger) => Ledger, message: stri
 
 /** Runs game bookkeeping after the hook has returned, so prompts and tool results never wait on it. */
 function later($: EngineInterface, work: () => Promise<unknown>) {
+  if (!local.isAwake) return
   $.clock.after(0, () => void work().catch(() => undefined))
 }
 
@@ -220,9 +224,8 @@ const clock = (at: number) => {
 
 const nameFromSlug = (slug: string) => slug.replace(HASHED, '').replace(/^Users-[^-]+-/, '').replace(/^projects-/, '')
 
-/** Every city saved on this machine, for the map: this one live, the rest as last saved. */
-async function refreshRegion($: EngineInterface) {
-  const live = await read($, neighbours)
+/** Every other city saved on this machine, most recently active first. */
+async function savedCities($: EngineInterface, limit: number) {
   const dirs = (await $.fs.list(local.citiesDir).catch(() => [])).filter(d => d.kind === 'dir' && !d.isLink && /^[A-Za-z0-9-]{1,160}$/.test(d.name))
   const moved = new Set(dirs.filter(d => HASHED.test(d.name)).map(d => d.name.replace(HASHED, '')))
   const candidates = dirs
@@ -237,26 +240,78 @@ async function refreshRegion($: EngineInterface) {
   const recent = dated
     .filter(x => x.at >= 0)
     .sort((a, b) => b.at - a.at)
-    .slice(0, MAX_REGION - 1)
-  const found: District[] = []
+    .slice(0, limit)
+  const found: { slug: string; name: string; city: City; at: number }[] = []
   for (const { d: dir, at, size } of recent) {
     const cached = local.cityCache.get(dir.name)
     const c = cached && cached.mtime === at && cached.size === size ? cached.city : sanitizeCity(await readSafe($, `${local.citiesDir}/${dir.name}/city.json`))
     if (!c) continue
     local.cityCache.set(dir.name, { mtime: at, size, city: c })
-    const sessions = live.filter(n => n.slug === dir.name)
-    found.push({
-      slug: dir.name,
-      name: c.project ?? nameFromSlug(dir.name),
-      city: c,
-      isHere: false,
-      isBusy: sessions.some(n => n.isBusy),
-      agents: sessions.flatMap(n => n.agents).slice(0, 12),
-    })
+    found.push({ slug: dir.name, name: c.project ?? nameFromSlug(dir.name), city: c, at })
   }
+  return found
+}
+
+/** Every city saved on this machine, for the map: this one live, the rest as last saved. */
+async function refreshRegion($: EngineInterface) {
+  const live = await read($, neighbours)
+  const found: District[] = (await savedCities($, MAX_REGION - 1)).map(({ slug, name, city }) => {
+    const sessions = live.filter(n => n.slug === slug)
+    return { slug, name, city, isHere: false, isBusy: sessions.some(n => n.isBusy), agents: sessions.flatMap(n => n.agents).slice(0, 12) }
+  })
   found.sort((a, b) => b.city.citizens - a.city.citizens)
   const mine: District = { slug: local.slug, name: local.project, city: await seen($), isHere: true, isBusy: false, agents: [] }
   await update($, region, () => [mine, ...found])
+}
+
+/** Blanks a city's files and drops its store backups, so it leaves the map; false if its save file isn't ours. */
+async function clearCity($: EngineInterface, slug: string) {
+  const dir = `${local.citiesDir}/${slug}`
+  if (!(await writeSafe($, 'city', `${dir}/city.json`, {}))) return false
+  const inbox = (await $.fs.list(`${dir}/inbox`).catch(() => [])).filter(f => f.kind === 'file' && !f.isLink && SESSION_FILE.test(f.name))
+  for (const f of inbox) await writeSafe($, 'ledger', `${dir}/inbox/${f.name}`, {})
+  const keys = (await $.store.keys().catch(() => [] as string[])).filter(k => k.startsWith('city:/'))
+  for (const key of keys) if (cityFolderOf(key.slice(5)) === slug || slugOf(key.slice(5)) === slug) await $.store.delete(key).catch(() => undefined)
+  local.cityCache.delete(slug)
+  return true
+}
+
+/** Lists the saved cities, or removes the one named, or every one with "all" (a city called "all" goes by its folder name). */
+async function removeCity($: EngineInterface, query: string) {
+  if (local.isOffline || !local.citiesDir) return 'Code City has no saved cities on this computer.'
+  const saved = await savedCities($, REGION_SCAN)
+  const label = (c: (typeof saved)[number]) => (saved.filter(o => o.name === c.name).length > 1 ? `${c.name} (${c.slug})` : c.name)
+  if (!query) {
+    if (!saved.length) return 'There are no other cities to remove.'
+    const list = saved.map(c => `  ${label(c)}: ${tierOf(c.city)} of ${Math.floor(c.city.citizens)} citizens, last active ${new Date(c.at).toISOString().slice(0, 10)}`)
+    return ['Saved cities, most recently active first:', ...list, 'Remove one with /city remove <name>, or every one with /city remove all.'].join('\n')
+  }
+  const q = query.toLowerCase()
+  const isAll = q === 'all'
+  if (!isAll && (q === local.project.toLowerCase() || query === local.slug)) return "You can't remove the city you're in."
+  const bySlug = saved.filter(c => c.slug === query)
+  const matches = isAll ? saved : bySlug.length ? bySlug : saved.filter(c => c.name.toLowerCase() === q)
+  if (isAll && !matches.length) return 'There are no other cities to remove.'
+  if (!matches.length) return `No saved city is called "${query}". Type /city remove to see them all.`
+  if (!isAll && matches.length > 1) return `More than one city is called "${query}": ${matches.map(c => c.slug).join(', ')}. Name the one you mean.`
+
+  const { others } = await readNeighbours($, await $.clock.now())
+  const removed: string[] = []
+  const skipped: string[] = []
+  for (const c of matches) {
+    if (others.some(n => n.slug === c.slug)) skipped.push(`${label(c)} (a session there is still running)`)
+    else if (await clearCity($, c.slug)) removed.push(label(c))
+    else skipped.push(`${label(c)} (its save file isn't one Code City wrote)`)
+  }
+  if ((await read($, view)) === 'map') await refreshRegion($)
+  if (removed.length) await note($, removed.length === 1 ? `${removed[0]} was cleared from the map` : `${removed.length} cities were cleared from the map`)
+  const kept = skipped.length ? `Left alone: ${skipped.join(', ')}.` : ''
+  if (!removed.length) return `Nothing was removed. ${kept}`
+  const where =
+    removed.length === 1
+      ? `Its emptied folder is left at ${local.citiesDir}/${matches.find(c => label(c) === removed[0])?.slug}; delete it yourself if you like.`
+      : `Their emptied folders are left in ${local.citiesDir}; delete them yourself if you like.`
+  return [`Removed ${removed.join(', ')}. ${where}`, kept].filter(Boolean).join(' ')
 }
 
 async function toggleView($: EngineInterface) {
@@ -411,88 +466,95 @@ async function pruneStore($: EngineInterface) {
   for (const key of keys) if (key !== local.storeKey && !(await $.fs.exists(key.slice(5)).catch(() => true))) await $.store.delete(key).catch(() => undefined)
 }
 
-export const register: Register = (on, options) => {
-  // Off unless the person turns it on: the pane opens only when asked for with /city.
-  const isAutoOpen = options.autoOpen === true
+async function wake($: EngineInterface) {
+  if (local.isAwake) return
+  local.isAwake = true
+  await update($, isAwake, () => true)
+  await settle($)
+  const now = await $.clock.now()
+  const saved = sanitizeCity(await $.store.get(local.storeKey))
+  await update($, city, c => {
+    const kept = sanitizeCity(c)
+    return kept && kept.founded > 0 ? kept : (saved ?? newCity(now))
+  })
+  // State kept across a hot reload was written by older code: check it again before drawing from it.
+  await update($, ledger, l => sanitizeLedger(l) ?? emptyLedger())
+  await update($, log, l => logLines(l))
+  local.self = await update($, self, id => (typeof id === 'string' && /^[A-Za-z0-9-]{1,64}$/.test(id) ? id : crypto.randomUUID()))
+  local.isEnded = false
+  local.isClosing = false
+  local.reported.clear()
+  if (!local.isOffline) await pruneStore($)
 
-  let mounted: { columns: number; rows: number } | undefined
+  const every = (ms: number, work: () => Promise<unknown>) => {
+    let isRunning = false
+    local.timers.push(
+      $.clock.every(ms, () => {
+        if (isRunning || local.isEnded) return
+        isRunning = true
+        void work()
+          .catch(() => undefined)
+          .finally(() => {
+            isRunning = false
+          })
+      }),
+    )
+  }
+
+  every(2000, async () => runCity($, await $.clock.now()))
+  every(1000, async () => pullCity($))
+
+  every(2500, async () => {
+    const now = await $.clock.now()
+    const before = await read($, agents)
+    const listed = await $.agent.list()
+    const live = listed
+      .filter(a => LIVE.includes(a.status))
+      .map(a => ({ id: a.id, type: clean(a.type, 32) || 'agent', description: clean(a.description, 100), status: a.status }))
+    await update($, agents, () => live)
+
+    for (const a of before.filter(a => !live.some(l => l.id === a.id))) {
+      const ok = listed.find(l => l.id === a.id)?.status !== 'failed'
+      await earn($, l => ({ ...l, bricks: l.bricks + (ok ? 15 : 3) }), `${a.type} drone ${ok ? 'landed' : 'crashed'}: ${a.description}${ok ? ' (+15 bricks)' : ''}`)
+    }
+
+    if (local.isOffline) return
+    await announce($, live)
+    const found = await readNeighbours($, now)
+    await update($, neighbours, () => found.others)
+    await update($, sessionsHere, () => found.here + 1)
+    if ((await read($, view)) === 'map') await refreshRegion($)
+  })
+
+  every(120, async () => {
+    const mounted = local.mounted
+    if (!mounted) return
+    const now = await $.clock.now()
+    const cells =
+      (await read($, view)) === 'map'
+        ? pack(paintRegion(await districtsNow($), mounted.columns, mounted.rows * 2, now, await read($, zoom)), mounted.columns, mounted.rows)
+        : frame(await seen($), mounted.columns, mounted.rows, now, { agents: await read($, agents), neighbours: await read($, neighbours), pan: local.pan })
+    const res = await $.ui.blit({ requestId: PANE, key: 'skyline', cells, ...mounted })
+    if (res.deny) local.mounted = undefined
+  })
+}
+
+export const register: Register = (on, options) => {
+  // Off unless the person turns it on: nothing runs until /city, or the autoOpen option, wakes the city.
+  const isAutoOpen = options.autoOpen === true
 
   on('session.start', async ($, e, next) => {
     for (const t of local.timers.splice(0)) t.cancel()
-    await $.command.register({ name: 'city', description: 'Watch your code city grow (map, shop, buy <item>)', argumentHint: '[map | shop | buy <item>]' })
-    await settle($)
-    const now = await $.clock.now()
-    const saved = sanitizeCity(await $.store.get(local.storeKey))
-    await update($, city, c => {
-      const kept = sanitizeCity(c)
-      return kept && kept.founded > 0 ? kept : (saved ?? newCity(now))
-    })
-    // State kept across a hot reload was written by older code: check it again before drawing from it.
-    await update($, ledger, l => sanitizeLedger(l) ?? emptyLedger())
-    await update($, log, l => logLines(l))
-    local.self = await update($, self, id => (typeof id === 'string' && /^[A-Za-z0-9-]{1,64}$/.test(id) ? id : crypto.randomUUID()))
-    local.isEnded = false
-    local.isClosing = false
-    local.reported.clear()
-    if (!local.isOffline) await pruneStore($)
-
-    const every = (ms: number, work: () => Promise<unknown>) => {
-      let isRunning = false
-      local.timers.push(
-        $.clock.every(ms, () => {
-          if (isRunning || local.isEnded) return
-          isRunning = true
-          void work()
-            .catch(() => undefined)
-            .finally(() => {
-              isRunning = false
-            })
-        }),
-      )
-    }
-
-    every(2000, async () => runCity($, await $.clock.now()))
-    every(1000, async () => pullCity($))
-
-    every(2500, async () => {
-      const now = await $.clock.now()
-      const before = await read($, agents)
-      const listed = await $.agent.list()
-      const live = listed
-        .filter(a => LIVE.includes(a.status))
-        .map(a => ({ id: a.id, type: clean(a.type, 32) || 'agent', description: clean(a.description, 100), status: a.status }))
-      await update($, agents, () => live)
-
-      for (const a of before.filter(a => !live.some(l => l.id === a.id))) {
-        const ok = listed.find(l => l.id === a.id)?.status !== 'failed'
-        await earn($, l => ({ ...l, bricks: l.bricks + (ok ? 15 : 3) }), `${a.type} drone ${ok ? 'landed' : 'crashed'}: ${a.description}${ok ? ' (+15 bricks)' : ''}`)
-      }
-
-      if (local.isOffline) return
-      await announce($, live)
-      const found = await readNeighbours($, now)
-      await update($, neighbours, () => found.others)
-      await update($, sessionsHere, () => found.here + 1)
-      if ((await read($, view)) === 'map') await refreshRegion($)
-    })
-
-    every(120, async () => {
-      if (!mounted) return
-      const now = await $.clock.now()
-      const cells =
-        (await read($, view)) === 'map'
-          ? pack(paintRegion(await districtsNow($), mounted.columns, mounted.rows * 2, now, await read($, zoom)), mounted.columns, mounted.rows)
-          : frame(await seen($), mounted.columns, mounted.rows, now, { agents: await read($, agents), neighbours: await read($, neighbours), pan: local.pan })
-      const res = await $.ui.blit({ requestId: PANE, key: 'skyline', cells, ...mounted })
-      if (res.deny) mounted = undefined
-    })
-
+    local.isAwake = false
+    await $.command.register({ name: 'city', description: 'Watch your code city grow (map, shop, buy <item>, remove <city>)', argumentHint: '[map | shop | buy <item> | remove <city | all>]' })
+    // Kept across /clear and hot reloads, so a session that opted in stays in.
+    if (isAutoOpen || (await read($, isAwake))) await wake($)
     if (isAutoOpen) void $.ui.open({ id: PANE, title: 'City', columns: 64, rows: 20 })
     return next(e)
   }).catch(($, e, next) => next(e))
 
   on('session.end', async ($, e, next) => {
-    if (e.reason === 'clear' || e.reason === 'resume') return next(e)
+    if (!local.isAwake || e.reason === 'clear' || e.reason === 'resume') return next(e)
     for (const t of local.timers.splice(0)) t.cancel()
     local.isClosing = true
     try {
@@ -513,6 +575,7 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'city' }, async ($, e) => {
+    await wake($)
     const [verb = '', ...rest] = e.args.trim().split(/\s+/)
     if (verb === 'buy') {
       const query = clean(rest.join(' '), 40)
@@ -521,6 +584,7 @@ export const register: Register = (on, options) => {
       if (!item) return { text: `Nothing called "${query}" is for sale. Try /city shop.` }
       return { text: await purchase($, item.id) }
     }
+    if (verb === 'remove') return { text: await removeCity($, clean(rest.join(' '), 160)) }
     if (verb === 'map') {
       await toggleView($)
       await $.ui.open({ id: PANE, title: 'City', columns: 64, rows: 20 })
@@ -658,7 +722,7 @@ export const register: Register = (on, options) => {
     const legend = shown.length + (scene.agents.length > 3 ? 1 : 0) + (isMap || scene.neighbours.length ? 1 : 0)
     const logRows = e.props.scroll.bodyRows >= 26 ? 4 : 3
     const rows = clamp(e.props.scroll.bodyRows - 1 - panelRows - legend - logRows, 6, 30)
-    mounted = { columns: width, rows }
+    local.mounted = { columns: width, rows }
 
     const building = c.buildings.some(b => b.floors < b.target)
     const sky = weatherLabel(weatherAt(now, c), skyAt(now).isNight)

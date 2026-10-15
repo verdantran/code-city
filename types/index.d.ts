@@ -122,6 +122,6 @@ export type Scene = { agents: AgentView[]; neighbours: Neighbour[]; pan?: Pan }
 
 declare module 'claude-code' {
   interface PluginState {
-    'code-city': { city: City; log: LogLine[]; view: View; zoom: number; districts: District[]; drones: AgentView[]; nearby: Neighbour[]; self: string; isShopOpen: boolean; ledger: Ledger; sessionsHere: number }
+    'code-city': { city: City; log: LogLine[]; view: View; zoom: number; districts: District[]; drones: AgentView[]; nearby: Neighbour[]; self: string; isShopOpen: boolean; isAwake: boolean; ledger: Ledger; sessionsHere: number }
   }
 }

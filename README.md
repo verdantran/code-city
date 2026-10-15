@@ -18,7 +18,7 @@ Answer `y` to add the marketplace, then pick a scope (user scope makes it availa
 
 ### Opening it automatically
 
-By default the pane only opens when you type `/city`, so it never appears in a project unless you ask for it. To have it open at the start of every session instead, turn on **Open the city at the start of every session**. The install offers this setting, and you can change it later in `/config`. Even with it on, the pane only opens by itself in terminals wide enough to fit it beside the conversation.
+By default a session ignores the city until you type `/city`: nothing is counted, saved or shown before then. Once you do, the city runs for the rest of that session, through `/clear` too. To have it open at the start of every session instead, turn on **Open the city at the start of every session**. The install offers this setting, and you can change it later in `/config`. Even with it on, the pane only opens by itself in terminals wide enough to fit it beside the conversation.
 
 ## Commands and keys
 
@@ -28,6 +28,7 @@ By default the pane only opens when you type `/city`, so it never appears in a p
 | `/city shop` | Open the shop under the city |
 | `/city buy <item>` | Buy by exact name or a unique prefix of 3+ letters, e.g. `/city buy ferris` |
 | `/city map` | Switch between the street and the map of all your cities |
+| `/city remove [city \| all]` | List your other saved cities, or clear one, or all of them, off the map. Its files are emptied but the folder stays, since the plugin never deletes files |
 | `s` / `v` / `z` | Shop, map and zoom |
 | An item's key | Buy that item while the shop is open (each button shows its key, e.g. `a: 150k`) |
 | `a` / `d` | Scroll the street left or right while the shop is shut; auto-scroll resumes 3 seconds after the last press |

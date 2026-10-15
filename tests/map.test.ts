@@ -3,6 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { City, District } from '../types'
 import { happenings, newCity, tick } from '../hooks/city'
 import { layout, paintRegion } from '../hooks/iso'
+import { optIn } from './session'
 
 const NOON = Date.UTC(2026, 6, 10) + 60_000
 
@@ -72,6 +73,7 @@ test('the log hears about construction, finishing, and redevelopment', async () 
 
 test('the map button swaps the skyline for the map, and the log scrolls under it', async ($, on) => {
   const clock = mock.clock(on, { now: NOON })
+  await optIn($, on)
   const ui = await $.ui.mount({
     plugin: 'code-city',
     surface: 'terminal',

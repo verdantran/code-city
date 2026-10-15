@@ -2,6 +2,7 @@ import { expect, mock, test } from 'claude-code/testing'
 
 import { frame, newCity, tick } from '../hooks/city'
 import { balanceOf, buy, CATALOG, formatTokens, RESERVED_KEYS, weighTokens } from '../hooks/shop'
+import { optIn } from './session'
 
 const rich = (tokens: number) => ({ ...newCity(1), tokens })
 
@@ -84,6 +85,7 @@ test('each model request adds its tokens as it finishes', async ($, on) => {
   on('turn.step', async function* ($, e) {
     return { turnId: e.turnId, index: e.index, answer: 'ok', toolUses: [], stopReason: 'end_turn', usage }
   })
+  await optIn($, on)
   const ui = await $.ui.mount({
     plugin: 'code-city',
     surface: 'terminal',
